@@ -16,8 +16,6 @@ Graph your eating habits with ease!
 
 <a href='https://play.google.com/store/apps/details?id=com.presley.fit_book'><img alt='Get it on Google Play' style="height: 80px !important" src='./docs/get-it-on-google-play.png'/></a>
 <a href="https://f-droid.org/packages/com.presley.fit_book"><img src="./docs/get-it-on-fdroid.png" alt="Get it on F-Droid" style="height: 80px !important"></a>
-
-<a href="https://apps.apple.com/us/app/fitbook-calorie-tracker/id6504304055"><img src="./docs/download-apple.svg" alt="Download on the App Store" style="height: 80px !important"></a>
 <a href="https://apps.microsoft.com/detail/FitBook%20-%20Calorie%20tracker/9PJJVF8507G0?mode=direct"><img src="./docs/download-msstore.svg" style="height: 80px !important"/></a>
 
 # Screenshots
