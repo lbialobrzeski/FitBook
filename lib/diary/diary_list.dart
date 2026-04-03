@@ -34,6 +34,9 @@ class DiaryList extends StatefulWidget {
 }
 
 class _DiaryListState extends State<DiaryList> {
+  static const double _lowThreshold = 0.85;
+  static const double _highThreshold = 1.15;
+
   @override
   void initState() {
     super.initState();
@@ -269,6 +272,12 @@ class _DiaryListState extends State<DiaryList> {
                         Text(fiber),
                       ],
                     ],
+                  ),
+                  ..._buildTrainingHintWidgets(
+                    stats[day]!,
+                    settings,
+                    Theme.of(context).colorScheme,
+                    false,
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -540,13 +549,132 @@ class _DiaryListState extends State<DiaryList> {
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => const DiarySettings()),
       ),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 16,
-        runSpacing: 12,
-        children: statItems,
+      child: Column(
+        children: [
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 12,
+            children: statItems,
+          ),
+          ..._buildTrainingHintWidgets(dayStats, settings, colorScheme, isToday),
+        ],
       ),
     );
+  }
+
+  List<Widget> _buildTrainingHintWidgets(
+    Stats dayStats,
+    dynamic settings,
+    ColorScheme colorScheme,
+    bool isToday,
+  ) {
+    final hints = _getTrainingHints(dayStats, settings);
+    if (hints.isEmpty) return [];
+
+    return [
+      const SizedBox(height: 12),
+      Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: hints
+            .map(
+              (hint) => Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isToday
+                      ? colorScheme.surface.withValues(alpha: 0.7)
+                      : colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant,
+                  ),
+                ),
+                child: Text(
+                  hint,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    ];
+  }
+
+  List<String> _getTrainingHints(Stats dayStats, dynamic settings) {
+    final hints = <({double deviation, String message})>[];
+
+    void addHint({
+      required String lowMessage,
+      required String highMessage,
+      required double current,
+      int? target,
+      bool allowHigh = true,
+    }) {
+      if (target == null || target <= 0) return;
+      final ratio = current / target;
+      if (ratio < _lowThreshold) {
+        final missing = (target - current).clamp(0, double.infinity);
+        hints.add((
+          deviation: 1 - ratio,
+          message: "$lowMessage +${missing.toStringAsFixed(0)}g",
+        ));
+      } else if (allowHigh && ratio > _highThreshold) {
+        final extra = (current - target).clamp(0, double.infinity);
+        hints.add((
+          deviation: ratio - 1,
+          message: "$highMessage -${extra.toStringAsFixed(0)}g",
+        ));
+      }
+    }
+
+    addHint(
+      lowMessage: 'Protein too low for recovery',
+      highMessage: 'Protein above target',
+      current: dayStats.protein,
+      target: settings.dailyProtein,
+    );
+    addHint(
+      lowMessage: 'Carbs too low for workout energy',
+      highMessage: 'Carbs above target',
+      current: dayStats.carb,
+      target: settings.dailyCarb,
+    );
+    addHint(
+      lowMessage: 'Fat too low for hormone support',
+      highMessage: 'Fat above target (heavier digestion)',
+      current: dayStats.fat,
+      target: settings.dailyFat,
+    );
+
+    if (settings.dailyCalories != null && settings.dailyCalories > 0) {
+      final caloriesRatio = dayStats.cals / settings.dailyCalories;
+      if (caloriesRatio < _lowThreshold) {
+        final missing = (settings.dailyCalories - dayStats.cals)
+            .clamp(0, double.infinity);
+        hints.add((
+          deviation: 1 - caloriesRatio,
+          message: "Calories too low for training day +${missing.toStringAsFixed(0)} kcal",
+        ));
+      } else if (caloriesRatio > _highThreshold) {
+        final extra = (dayStats.cals - settings.dailyCalories)
+            .clamp(0, double.infinity);
+        hints.add((
+          deviation: caloriesRatio - 1,
+          message:
+              "Calories above target -${extra.toStringAsFixed(0)} kcal",
+        ));
+      }
+    }
+
+    hints.sort((a, b) => b.deviation.compareTo(a.deviation));
+    return hints.take(2).map((hint) => hint.message).toList();
   }
 
   Widget _buildStatItem(
