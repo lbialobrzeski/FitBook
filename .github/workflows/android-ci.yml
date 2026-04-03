@@ -14,6 +14,10 @@ permissions:
 jobs:
   build-android-debug:
     runs-on: ubuntu-latest
+    env:
+      # Avoid Gradle/Jetifier OOM on GitHub-hosted runners during Flutter Android builds.
+      GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+      ORG_GRADLE_WORKERS_MAX: 2
 
     steps:
       - name: Checkout code
