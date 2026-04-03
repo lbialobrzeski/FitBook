@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:fit_book/database/database.dart';
 
 class MealSchedulerService {
