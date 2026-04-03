@@ -9,6 +9,7 @@ import 'package:fit_book/graph_page.dart';
 import 'package:fit_book/reminders.dart';
 import 'package:fit_book/settings/settings_state.dart';
 import 'package:fit_book/settings/whats_new.dart';
+import 'package:fit_book/services/meal_scheduler_service.dart';
 import 'package:fit_book/utils.dart';
 import 'package:fit_book/weight/weight_page.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +38,10 @@ Future<void> main() async {
     setupReminders();
   else
     cancelReminders();
+
+  await db.ensurePolishStarterFoods();
+  await db.localizeExistingFoodNames();
+  await MealSchedulerService.run(db);
 
   runApp(appProviders(state));
 

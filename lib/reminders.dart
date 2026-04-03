@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:fit_book/database/database.dart';
+import 'package:fit_book/services/meal_scheduler_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -41,6 +42,7 @@ doDesktopReminders() async {
   await plugin.initialize(init);
 
   final db = AppDatabase();
+  await MealSchedulerService.run(db);
 
   final diaries = await (db.diaries.select()
         ..where(
@@ -58,7 +60,7 @@ doDesktopReminders() async {
     if (entered.isEmpty)
       await plugin.show(
         1,
-        "Don't forget to log breakfast",
+        "Nie zapomnij dodać śniadania",
         null,
         null,
       );
@@ -69,7 +71,7 @@ doDesktopReminders() async {
     if (entered.isEmpty)
       await plugin.show(
         2,
-        "Don't forget to log lunch",
+        "Nie zapomnij dodać obiadu",
         null,
         null,
       );
@@ -80,7 +82,7 @@ doDesktopReminders() async {
     if (entered.isEmpty)
       await plugin.show(
         3,
-        "Don't forget to log dinner",
+        "Nie zapomnij dodać kolacji",
         null,
         null,
       );
@@ -112,6 +114,7 @@ void doMobileReminders() {
     await plugin.initialize(init);
 
     final db = AppDatabase();
+    await MealSchedulerService.run(db);
 
     final diaries = await (db.diaries.select()
           ..where(
@@ -133,7 +136,7 @@ void doMobileReminders() {
 
       await plugin.show(
         1,
-        "Don't forget to log breakfast",
+        "Nie zapomnij dodać śniadania",
         null,
         const NotificationDetails(
           android: AndroidNotificationDetails(
@@ -149,7 +152,7 @@ void doMobileReminders() {
 
       await plugin.show(
         2,
-        "Don't forget to log lunch",
+        "Nie zapomnij dodać obiadu",
         null,
         const NotificationDetails(
           android: AndroidNotificationDetails(
@@ -165,7 +168,7 @@ void doMobileReminders() {
 
       await plugin.show(
         3,
-        "Don't forget to log dinner",
+        "Nie zapomnij dodać kolacji",
         null,
         const NotificationDetails(
           android: AndroidNotificationDetails(
