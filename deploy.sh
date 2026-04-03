@@ -79,16 +79,17 @@ else
 fi
 
 # Setup Flutter
-print_step "Setting up Flutter from submodule"
-if [ ! -d "flutter" ]; then
-    print_warning "Flutter submodule not found, initializing..."
-    git submodule update --init --recursive flutter
+print_step "Setting up Flutter"
+if [ -x "$PWD/flutter/bin/flutter" ]; then
+    print_success "Using Flutter SDK from submodule"
+    export PATH="$PWD/flutter/bin:$PATH"
+    chmod +x flutter/bin/* # Ensure executables are runnable
+elif command -v flutter >/dev/null 2>&1; then
+    print_success "Using system Flutter SDK ($(flutter --version | head -n 1))"
 else
-    git submodule update --recursive flutter
+    print_error "Flutter SDK not found. Install Flutter or initialize the flutter submodule."
+    exit 1
 fi
-
-export PATH="$PWD/flutter/bin:$PATH"
-chmod +x flutter/bin/* # Ensure executables are runnable
 
 # Run tests and analysis
 print_step "Running tests and analysis"
