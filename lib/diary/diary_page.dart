@@ -28,6 +28,55 @@ class DiaryPageState extends State<DiaryPage> {
   late final TextEditingController searchController =
       TextEditingController(text: entriesState.search);
 
+  Future<void> copyYesterdayEntries() async {
+    final now = DateTime.now();
+    final startYesterday = DateTime(now.year, now.month, now.day - 1);
+    final startToday = DateTime(now.year, now.month, now.day);
+    final endToday = DateTime(now.year, now.month, now.day + 1);
+
+    final yesterdayEntries = await (db.diaries.select()
+          ..where(
+            (entry) =>
+                entry.created.isBiggerOrEqualValue(startYesterday) &
+                entry.created.isSmallerThanValue(startToday),
+          ))
+        .get();
+
+    if (yesterdayEntries.isEmpty) return;
+
+    final existingToday = await (db.diaries.select()
+          ..where(
+            (entry) =>
+                entry.created.isBiggerOrEqualValue(startToday) &
+                entry.created.isSmallerThanValue(endToday),
+          ))
+        .get();
+    final existingKeys = existingToday
+        .map((entry) => '${entry.food}|${entry.quantity}|${entry.unit}')
+        .toSet();
+
+    final inserts = yesterdayEntries.where((entry) {
+      final key = '${entry.food}|${entry.quantity}|${entry.unit}';
+      return !existingKeys.contains(key);
+    }).map((entry) {
+      return DiariesCompanion.insert(
+        food: entry.food,
+        created: DateTime(
+          now.year,
+          now.month,
+          now.day,
+          entry.created.hour,
+          entry.created.minute,
+        ),
+        quantity: entry.quantity,
+        unit: entry.unit,
+      );
+    }).toList();
+
+    if (inserts.isEmpty) return;
+    await db.diaries.insertAll(inserts);
+  }
+
   @override
   Widget build(BuildContext context) {
     return NavigatorPopHandler(
@@ -121,6 +170,12 @@ class DiaryPageState extends State<DiaryPage> {
                     "Tap the plus button to start logging your food.",
                   ),
                 ),
+              ListTile(
+                leading: const Icon(Icons.copy_all_outlined),
+                title: const Text('Copy yesterday entries'),
+                subtitle: const Text('Quickly re-add your routine meals'),
+                onTap: copyYesterdayEntries,
+              ),
               DiaryList(
                 ctrl: scrollCtrl,
                 diaryFoods: entryFoods,

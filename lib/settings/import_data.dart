@@ -28,6 +28,33 @@ class ImportData extends StatefulWidget {
 
 class _ImportDataState extends State<ImportData> {
   bool importing = false;
+  double? _asDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString().replaceAll(',', '.'));
+  }
+
+  String? _valueByHeader(
+    List<dynamic> row,
+    Map<String, int> headerIndex,
+    String header,
+  ) {
+    final index = headerIndex[header];
+    if (index == null || index >= row.length) return null;
+    final value = row[index]?.toString();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  double? _doubleByHeader(
+    List<dynamic> row,
+    Map<String, int> headerIndex,
+    String header,
+  ) {
+    final index = headerIndex[header];
+    if (index == null || index >= row.length) return null;
+    return _asDouble(row[index]);
+  }
 
   _importFoods(BuildContext context) async {
     Navigator.pop(context);
@@ -47,6 +74,61 @@ class _ImportDataState extends State<ImportData> {
       }
       List<List<dynamic>> rows =
           const CsvToListConverter(eol: "\n").convert(csv);
+
+      final header = rows.first.map((field) => field.toString().trim()).toList();
+      final headerIndex = <String, int>{
+        for (var i = 0; i < header.length; i++) header[i].toLowerCase(): i,
+      };
+      final simpleImport = headerIndex.containsKey('name') &&
+          header.length <= 12 &&
+          !headerIndex.containsKey('id');
+
+      if (simpleImport) {
+        final foods = <FoodsCompanion>[];
+        for (final row in rows.skip(1)) {
+          final name = _valueByHeader(row, headerIndex, 'name');
+          if (name == null) continue;
+          foods.add(
+            FoodsCompanion.insert(
+              name: name,
+              foodGroup: Value(
+                _valueByHeader(row, headerIndex, 'food_group') ??
+                    _valueByHeader(row, headerIndex, 'category') ??
+                    _valueByHeader(row, headerIndex, 'store'),
+              ),
+              calories: Value(
+                _doubleByHeader(row, headerIndex, 'calories'),
+              ),
+              proteinG: Value(
+                _doubleByHeader(row, headerIndex, 'protein_g'),
+              ),
+              fatG: Value(
+                _doubleByHeader(row, headerIndex, 'fat_g'),
+              ),
+              carbohydrateG: Value(
+                _doubleByHeader(row, headerIndex, 'carbohydrate_g') ??
+                    _doubleByHeader(row, headerIndex, 'carbs_g'),
+              ),
+              servingUnit: Value(
+                _valueByHeader(row, headerIndex, 'serving_unit') ?? 'grams',
+              ),
+              servingSize: Value(
+                _doubleByHeader(row, headerIndex, 'serving_size') ?? 100,
+              ),
+              barcode: Value(_valueByHeader(row, headerIndex, 'barcode')),
+            ),
+          );
+        }
+
+        await db.foods.insertAll(foods);
+        if (widget.pageContext.mounted)
+          Navigator.pushNamedAndRemoveUntil(
+            widget.pageContext,
+            '/',
+            (route) => false,
+          );
+        return;
+      }
 
       List<FoodsCompanion> foods = [];
       for (final row in rows.skip(1)) {

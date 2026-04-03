@@ -13,6 +13,12 @@ Graph your eating habits with ease!
 - 🍏 **Foods**: FitBook ships with over 7 thousand foods (sourced from the [CORGIS Dataset Project](https://corgis-edu.github.io/corgis/csv/food/)).
 - 🍇 **OpenFoodFacts**: Scan barcodes & search for foods with [OpenFoodFacts](https://world.openfoodfacts.org/).
 - 📈 **Graphs**: Plot your diet macros over time.
+- ⏰ **Daily meal schedules**: Auto-add recurring meals/supplements each day (example: coffee at 09:00).
+- 🇵🇱 **Polish-friendly food names**: App localizes built-in food names to Polish-style labels at startup.
+
+Daily schedule flag format uses `food_group`:
+- `Codziennie@09:00|Napoje`
+- `Codziennie@08:00|Suplementy`
 
 <a href='https://play.google.com/store/apps/details?id=com.presley.fit_book'><img alt='Get it on Google Play' style="height: 80px !important" src='./docs/get-it-on-google-play.png'/></a>
 <a href="https://f-droid.org/packages/com.presley.fit_book"><img src="./docs/get-it-on-fdroid.png" alt="Get it on F-Droid" style="height: 80px !important"></a>
@@ -51,6 +57,29 @@ To install the app, follow these steps:
 # Contributing
 
 All issues and pull requests are welcome. We don't mind what variable names you pick, where you place your commas, or how many spaces you use.
+
+## CSV import (simple format)
+
+FitBook supports a simplified CSV import for custom products.
+
+1. Open **Settings → Data → Import foods**.
+2. Pick a CSV file with headers like:
+
+```csv
+name,store,category,calories,protein_g,fat_g,carbohydrate_g,serving_unit,serving_size,barcode
+Skyr naturalny,Lidl,Nabiał,63,11,0.2,3.6,grams,100,
+Witamina D3,Apteka,Suplementy,0,0,0,0,capsule,1,
+```
+
+3. `store`/`category` are mapped to `food_group`.
+4. Missing macro values are optional.
+
+Ready example: `assets/polish_products.csv`.
+
+## Faster logging automation
+
+- Diary has a **Copy yesterday entries** shortcut.
+- Food search prioritizes favorites and most recently logged products.
 
 ## License
 

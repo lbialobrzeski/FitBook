@@ -1,0 +1,48 @@
+name: Android CI Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: Setup Flutter from repository submodule
+        run: |
+          if [ ! -x "flutter/bin/flutter" ]; then
+            git submodule update --init --recursive flutter
+          fi
+          echo "${GITHUB_WORKSPACE}/flutter/bin" >> "$GITHUB_PATH"
+          flutter/bin/flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitbook-android-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk

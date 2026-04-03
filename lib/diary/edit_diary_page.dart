@@ -93,21 +93,20 @@ class _EditDiaryPageState extends State<EditDiaryPage> {
   }
 
   Future<List<String>> searchDrift(String term) async {
-    return await (db.foods.selectOnly()
-          ..where(db.foods.name.contains(term.toLowerCase()))
-          ..limit(30)
-          ..orderBy([
-            OrderingTerm(
-              expression: db.foods.favorite,
-              mode: OrderingMode.desc,
-            ),
-          ])
-          ..addColumns([db.foods.name, db.foods.favorite]))
-        .get()
-        .then(
-          (results) =>
-              results.map((result) => result.read(db.foods.name)!).toList(),
-        );
+    final rows = await db.customSelect(
+      '''
+      SELECT f.name
+      FROM foods f
+      LEFT JOIN diaries d ON d.food = f.id
+      WHERE lower(f.name) LIKE ?
+      GROUP BY f.id
+      ORDER BY COALESCE(f.favorite, 0) DESC, MAX(d.created) DESC
+      LIMIT 30
+      ''',
+      variables: [Variable('%${term.toLowerCase()}%')],
+    ).get();
+
+    return rows.map((row) => row.read<String>('name')).toList();
   }
 
   @override

@@ -11,6 +11,7 @@ import 'package:fit_book/database/metadata.dart';
 import 'package:fit_book/database/settings.dart';
 import 'package:fit_book/database/weights.dart';
 import 'package:fit_book/main.dart';
+import 'package:fit_book/services/food_name_localizer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
@@ -48,12 +49,19 @@ class AppDatabase extends _$AppDatabase {
         for (final row in rows) {
           Map<String, Expression<Object>> map = {};
           for (var entry in row.entries) {
-            map[entry.key] = Variable(entry.value);
+            if (entry.key == 'name' && entry.value is String) {
+              map[entry.key] = Variable(
+                FoodNameLocalizer.localize(entry.value as String),
+              );
+            } else {
+              map[entry.key] = Variable(entry.value);
+            }
           }
           insertables.add(RawValuesInsertable<Food>(map));
         }
 
         await db.foods.insertAll(insertables);
+        await _seedPolishFoods(this);
 
         await settings.insertOne(defaultSettings);
       },
@@ -373,4 +381,96 @@ WHERE name = 'Quick-add'
 
   @override
   int get schemaVersion => 46;
+
+  Future<void> ensurePolishStarterFoods() => _seedPolishFoods(this);
+  Future<void> localizeExistingFoodNames() => _localizeExistingFoodNames(this);
+}
+
+Future<void> _seedPolishFoods(AppDatabase db) async {
+  final existing = await (db.foods.select()
+        ..where((entry) => entry.name.isIn([
+              'Kawa czarna',
+              'Banan',
+              'Skyr naturalny',
+              'Witamina D3',
+              'Omega-3',
+              'Serek wiejski',
+            ])))
+      .get();
+  if (existing.length >= 6) return;
+
+  await db.batch((batch) {
+    batch.insertAllOnConflictUpdate(
+      db.foods,
+      [
+        FoodsCompanion.insert(
+          name: 'Kawa czarna',
+          calories: const Value(2),
+          servingUnit: const Value('cup'),
+          servingSize: const Value(240),
+          foodGroup: const Value('Codziennie@09:00|Napoje'),
+        ),
+        FoodsCompanion.insert(
+          name: 'Banan',
+          calories: const Value(89),
+          carbohydrateG: const Value(23),
+          servingUnit: const Value('grams'),
+          servingSize: const Value(100),
+          foodGroup: const Value('Owoce'),
+        ),
+        FoodsCompanion.insert(
+          name: 'Skyr naturalny',
+          calories: const Value(63),
+          proteinG: const Value(11),
+          carbohydrateG: const Value(3.6),
+          fatG: const Value(0.2),
+          servingUnit: const Value('grams'),
+          servingSize: const Value(100),
+          foodGroup: const Value('Nabiał'),
+        ),
+        FoodsCompanion.insert(
+          name: 'Serek wiejski',
+          calories: const Value(98),
+          proteinG: const Value(11),
+          carbohydrateG: const Value(3),
+          fatG: const Value(5),
+          servingUnit: const Value('grams'),
+          servingSize: const Value(100),
+          foodGroup: const Value('Nabiał'),
+        ),
+        FoodsCompanion.insert(
+          name: 'Witamina D3',
+          calories: const Value(0),
+          servingUnit: const Value('capsule'),
+          servingSize: const Value(1),
+          foodGroup: const Value('Codziennie@08:00|Suplementy'),
+        ),
+        FoodsCompanion.insert(
+          name: 'Omega-3',
+          calories: const Value(10),
+          fatG: const Value(1),
+          servingUnit: const Value('capsule'),
+          servingSize: const Value(1),
+          foodGroup: const Value('Suplementy'),
+        ),
+      ],
+    );
+  });
+}
+
+Future<void> _localizeExistingFoodNames(AppDatabase db) async {
+  final foods = await (db.foods.select()).get();
+  await db.batch((batch) {
+    for (final food in foods) {
+      final localized = FoodNameLocalizer.localize(food.name);
+      if (localized == food.name) continue;
+      batch.update(
+        db.foods,
+        FoodsCompanion(
+          name: Value(localized),
+        ),
+        where: (table) => table.id.equals(food.id),
+      );
+    }
+  });
 }
